@@ -1,0 +1,26 @@
+{
+  "name": "test-wpt-webnn",
+  "version": "1.0.0",
+  "description": "It's a test infrastructure to run WPT Conformance Tests by Chrome Canary.",
+  "main": "main.js",
+  "scripts": {
+    "format": "prettier --log-level log --write \"src/*.js\"",
+    "test": "node src/main.js"
+  },
+  "keywords": [
+    "webnn"
+  ],
+  "author": "Bruce Dai",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "csv-stringify": "^6.5.2",
+    "dayjs": "^1.11.13",
+    "fs-extra": "^11.3.0",
+    "nodemailer": "^6.10.0",
+    "prettier": "^3.5.3",
+    "puppeteer-core": "^24.2.0",
+    "sleep": "^6.3.0",
+    "systeminformation": "^5.25.11"
+  }
+}
