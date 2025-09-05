@@ -1,0 +1,125 @@
+{
+    // please modify testPurpose which is used in report content
+    "testPurpose": "your test purpose",
+    // current targetBrowser supports "Chrome Canary" or "Edge Canary"
+    // please modify targetBrowser if you want to test "Edge Canary"
+    "targetBrowser": "Chrome Canary",
+    // current targetPlatform only supports "Windows" platform 
+    "targetPlatform": "Windows",
+    // please modify your test binary path
+    "browserPath": {
+        "Chrome Canary": "C:\\Users\\webnn\\AppData\\Local\\Google\\Chrome SxS\\Application\\chrome.exe",
+        "Edge Canary": "C:\\Users\\webnn\\AppData\\Local\\Microsoft\\Edge SxS\\Application\\msedge.exe"
+    },
+    // current targetBackendOrEP supports "LiteRT XNNPACK CPU", "LiteRT MLDrift GPU", "DML GPU", "ORT Default CPU", "ORT OV CPU", "ORT OV GPU", "ORT OV NPU",
+    // "Nightly ORT Default CPU", "Nightly ORT WebGPU", "Nightly ORT OV CPU", "Nightly ORT OV GPU", "Nightly ORT OV NPU"
+    // please modify your test backend or ep
+    "targetBackendOrEP": [
+        "ToModifyBackendOrEP1",
+        "ToModifyBackendOrEP"
+    ],
+
+     // Code would replace ToReplaceBy*** in below browserLaunchArgs by these three specified paths
+     // please modify your paths for below three settings 
+    "officalORTPath": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsAppRuntime.1.8-experimental4_8000.548.2012.0_x64__8wekyb3d8bbwe",
+    "nightlyORTPath": "C:\\Program Files\\ONNXRuntime",
+    "nightlyPluginPath": "C:\\Program Files\\ONNXRuntime-OVEP\\onnxruntime_providers_openvino_plugin.dll",
+
+    // don't modify below browserLaunchArgs settings
+    "browserLaunchArgs": {
+        // LiteRT backend
+        "LiteRT XNNPACK CPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork"
+        ],
+        "LiteRT MLDrift GPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork"
+        ],
+    
+        // DML GPU backend -- it will be depreciated
+        "DML GPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNDirectML"
+        ],
+    
+        // Official ORT EP
+        "ORT Default CPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+             // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath",
+             // use fakepath to avoid path error
+            "--webnn-ort-ep-library-path-for-testing='fakepath'"
+        ],
+        // use default OV EP, no need use "--webnn-ort-ep-library-path-for-testing" switch
+        "ORT OV CPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath"
+        ],
+        "ORT OV GPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath"
+        ],
+        "ORT OV NPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath"
+        ],
+    
+        // Nightly build OV EP
+        "Nightly ORT Default CPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
+            // use fakepath to avoid path error
+            "--webnn-ort-ep-library-path-for-testing='fakepath'",
+            "--allow-third-party-modules"
+        ],
+        "Nightly ORT WebGPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
+            // use fakepath to avoid path error
+            "--webnn-ort-ep-library-path-for-testing='fakepath'",
+            "--allow-third-party-modules"
+        ],
+        "Nightly ORT OV CPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
+            // placeholder webnn-ort-ep-library-path-for-testing switch
+            "--webnn-ort-ep-library-path-for-testing=ToReplaceByNightlyPluginPath",
+            "--allow-third-party-modules"
+        ],
+        "Nightly ORT OV GPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
+            // placeholder webnn-ort-ep-library-path-for-testing switch
+            "--webnn-ort-ep-library-path-for-testing=ToReplaceByNightlyPluginPath",
+            "--allow-third-party-modules"
+        ],
+        "Nightly ORT OV NPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            // placeholder webnn-ort-library-path-for-testing switch
+            "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
+            // placeholder webnn-ort-ep-library-path-for-testing switch
+            "--webnn-ort-ep-library-path-for-testing=ToReplaceByNightlyPluginPath",
+            "--allow-third-party-modules"
+        ]
+    },
+    // please modify emailService settings
+    "emailService": {
+        "serverConfig": {
+            "host": "server host",
+            "port": "port number" // for example 25
+        },
+        "from": "your email address",
+        "to": [
+            "user1 email address",
+            "user2 email address"
+        ]
+    },
+    // npuDriverVersion setting is only for test by npu
+    // please modify your npu driver version when testing by npu, or, need remove it
+    "npuDriverVersion": "version"
+}

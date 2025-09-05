@@ -15,9 +15,7 @@ Canary](https://www.google.com/chrome/canary/).
   Execution Provider to run WebNN on Windows ML
   backend (CPU, GPU and NPU)
 
-Install [Windows ML
-Runtime](https://apps.microsoft.com/detail/9mvl55dvgwww) from Microsoft
-Store
+Install [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads)
 
 Install [Windows ML Runtime Intel OpenVINO Execution Provider](https://apps.microsoft.com/detail/9ph4ckr43xlp) from Microsoft Store
 
@@ -37,7 +35,7 @@ Step 2: Make a directory named "ONNXRuntime-OVEP" under %ProgramFiles%, then
 copy below 
 dependent OpenVino EP libraries into it.
 ```
-onnxruntime_providers_openvino.dll
+onnxruntime_providers_openvino_plugin.dll
 openvino.dll
 openvino_intel_cpu_plugin.dll (for CPU inference)
 openvino_intel_gpu_plugin.dll (for GPU inference)
@@ -53,8 +51,8 @@ tbb12.dll (dependency of openvino.dll)
 > npm install
 ```
 
-### Configure Report Mail settings
-Please modify email settings of the variable `emailService` on ./src/report.js#L10.
+### Configure settings in config.json
+Please modify settings in config.json.
 
 ### Running Test
 ```batch

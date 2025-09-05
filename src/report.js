@@ -6,17 +6,7 @@ const { execSync } = require("child_process");
 const fs = require("fs-extra");
 const nodemailer = require("nodemailer");
 const si = require("systeminformation");
-
-const emailService = {
-  serverConfig: {
-    host: "ecsmtp.pdx.intel.com",
-    port: 25,
-    secure: false,
-    auth: false,
-  },
-  from: "username@intel.com",
-  to: ["username@intel.com"],
-};
+const { config } = require("./utils.js");
 
 function getTimestamp(minute = false) {
   const timestamp = Date.now();
@@ -34,19 +24,9 @@ async function getTestEnvironmentInfo(currentVersion) {
   environmentInfo["hostname"] = os.hostname();
   environmentInfo["platform"] = os.platform();
   environmentInfo["testUrl"] = "https://wpt.live/webnn/conformance_tests/";
-  environmentInfo["chromeCanary"] = currentVersion;
+  environmentInfo[config.targetBrowser] = currentVersion;
   environmentInfo["testCommand"] =
-    `chrome.exe --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime`;
-  
-  // This test command is for testing own built ORT and OV EP dlls
-  // const ortDllsFolder = path.join(process.env.ProgramFiles, "ONNXRuntime");
-  // const ortOVEPDllsFolder = path.join(
-  //   process.env.ProgramFiles,
-  //   "ONNXRuntime-OVEP",
-  // );
-  // environmentInfo["testCommand"] =
-  //   `chrome.exe --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime --webnn-ort-library-path-for-testing=${ortDllsFolder} --webnn-ort-ep-library-path-for-testing=${ortOVEPDllsFolder} --allow-third-party-modules`;
-
+    `${config.browserLaunchArgs[backendOrEP]} ${config.browserPath[config.targetBrowser].join(" ")}`;
 
   // CPU
   const cpuData = await si.cpu();
@@ -128,26 +108,8 @@ async function getTestEnvironmentInfo(currentVersion) {
   }
 
   // NPU
-  try {
-    if (environmentInfo.platform === "win32") {
-      const info = execSync(
-        `powershell -Command "Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Name -like '*AI Boost*' } | Select-Object Name,Manufacturer,DeviceID | ConvertTo-Json"`,
-      )
-        .toString()
-        .trim();
-      const npuInfo = JSON.parse(info);
-      environmentInfo["npuName"] = npuInfo["Name"];
-      const match = npuInfo["DeviceID"].match(".*DEV_(.{4})");
-      environmentInfo["npuDeviceId"] = match
-        ? match[1].toUpperCase()
-        : "Unknown";
-      // manually set version since it can't get with script
-      environmentInfo["npuDriverVersion"] = "32.0.100.3159";
-    }
-  } catch (error) {
-    console.error(
-      `>>> Error occurred while getting NPU info\n. Error Details: ${error}`,
-    );
+  if (config.npuDriverVersion) {
+    environmentInfo["npuDriverVersion"] = config.npuDriverVersion;
   }
 
   return environmentInfo;
@@ -212,9 +174,7 @@ async function getSummaryResult(currentVersion, lastVersion, csvFileArray) {
       let newPassTests = [];
       let regressionTests = [];
       const fileName = path.basename(csvFile, ".csv");
-      const backend =
-        "OV " +
-        fileName.slice("conformance_tests_result-".length).toUpperCase();
+      const backend = fileName.slice("conformance_tests_result-".length);
       const currentResults = await readCsv(csvFile);
       passRates.push({
         backend,
@@ -580,12 +540,14 @@ async function sendMail(
 ) {
   console.log(">>> Sending email...");
   const subject = `${getTimestamp()} - Nightly WPT WebNN Conformance Test Report by ${os.hostname()}`;
-  let transporter = nodemailer.createTransport(emailService.serverConfig);
+  let transporter = nodemailer.createTransport(
+    config.emailService.serverConfig,
+  );
 
   try {
     let mailOptions = {
-      from: emailService.from,
-      to: emailService.to,
+      from: config.emailService.from,
+      to: config.emailService.to,
       subject: subject,
       attachments: [],
     };
@@ -619,9 +581,16 @@ async function sendMail(
       );
       const environmentInfoTable = htmlResult.html.environmentInfoTable;
       const passRateTable = htmlResult.html.passRateTable;
-      htmlContent = `
-        <p>Nightly WPT Conformance Test completed. Please review the details below:</p>
-      `;
+
+      if (lastVersion) {
+        htmlContent = `
+          <p>Nightly WPT Conformance Test completed for ${config.testPurpose}. Please review below details comparing with last test of ${lastVersion}:</p>
+        `;
+      } else {
+        htmlContent = `
+          <p>Nightly WPT Conformance Test completed by ${config.testPurpose}. Please review below details:</p>
+        `;
+      }
 
       htmlContent += `<p><strong>Test Environment Info</strong></p>
         ${environmentInfoTable}`;

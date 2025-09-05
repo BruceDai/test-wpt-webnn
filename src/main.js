@@ -6,9 +6,9 @@ const puppeteer = require("puppeteer-core");
 const sleep = require("sleep");
 const { execSync, spawnSync } = require("child_process");
 const { stringify } = require("csv-stringify");
+const { config } = require("./utils.js");
 const { sendMail } = require("./report.js");
 
-const deviceTypeArray = ["cpu", "gpu", "npu"];
 const msTimeout = 300000; // 5 minutes
 const currentPath = process.cwd();
 let currentBrowser = null;
@@ -29,10 +29,12 @@ const resultColumns = {
 let lastVersion = null;
 let currentVersion = null;
 
-function getCanaryVersion() {
-  const info = execSync(
-    `reg query "HKEY_CURRENT_USER\\Software\\Google\\Chrome SxS\\BLBeacon" /v version`,
-  ).toString();
+function getBrowserVersion() {
+  const queryString =
+    config.targetBrowser === "Chrome Canary"
+      ? `reg query "HKEY_CURRENT_USER\\Software\\Google\\Chrome SxS\\BLBeacon" /v version`
+      : `reg query "HKEY_CURRENT_USER\\Software\\Microsoft\\Edge SxS\\BLBeacon" /v version`;
+  const info = execSync(queryString).toString();
   const match = info.match(/version\s+REG_SZ\s+([^\r\n]+)/i);
   return match[1];
 }
@@ -71,46 +73,23 @@ function getTestsuiteName(link) {
   );
 }
 
-function killChrome() {
-  spawnSync("cmd", ["/c", "taskkill /F /IM chrome.exe /T"]);
+function killBrowser() {
+  const binaryName =
+    config.targetBrowser === "Chrome Canary" ? "chrome.exe" : "msedge.exe";
+  spawnSync("cmd", ["/c", `taskkill /F /IM ${binaryName} /T`]);
 }
 
-async function setBrowser(deviceType = "cpu") {
-  killChrome();
+async function setBrowser(backendOrEP) {
+  killBrowser();
 
-  // Launch Chrome canary
-  const chromePath = path.join(
-    process.env.LOCALAPPDATA,
-    "Google",
-    "Chrome SxS",
-    "Application",
-    "chrome.exe",
-  );
-
-  // These two folders are for testing own built ORT and OV EP dlls
-  const ortDllsFolder = path.join(process.env.ProgramFiles, "ONNXRuntime");
-  const ortOVEPDllsFolder = path.join(
-    process.env.ProgramFiles,
-    "ONNXRuntime-OVEP",
-  );
-
-  const chromeArgs = [
-    "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
-
-    // These below three switches are for testing own built ORT and OV EP dlls
-    `--webnn-ort-library-path-for-testing=${ortDllsFolder}`,
-    `--webnn-ort-ep-library-path-for-testing=${ortOVEPDllsFolder}`,
-    "--allow-third-party-modules",
-  ];
-
-  const userDataDir = path.join(os.tmpdir(), deviceType);
+  const userDataDir = path.join(os.tmpdir(), backendOrEP);
   if (fs.existsSync(userDataDir)) {
     fs.rmSync(userDataDir, { recursive: true, force: true });
   }
   fs.mkdirpSync(userDataDir);
   const browser = await puppeteer.launch({
-    args: chromeArgs,
-    executablePath: chromePath,
+    args: backendOrEP ? config.browserLaunchArgs[backendOrEP] : [],
+    executablePath: config.browserPath[config.targetBrowser],
     headless: false,
     ignoreHTTPSErrors: true,
     protocolTimeout: msTimeout,
@@ -120,21 +99,24 @@ async function setBrowser(deviceType = "cpu") {
   return browser;
 }
 
-async function getTestResult(link, deviceType, timeoutTestLinks, lastRerun) {
+async function getTestResult(link, backendOrEP, timeoutTestLinks, lastRerun) {
   let page;
 
   if (currentBrowser) {
     await currentBrowser.close();
   }
 
-  currentBrowser = await setBrowser(deviceType);
+  currentBrowser = await setBrowser(backendOrEP);
 
   page = await currentBrowser.newPage();
   page.setDefaultTimeout(msTimeout);
 
   const testsuiteName = getTestsuiteName(link);
-  const testLink =
-    link.slice(0, link.length - 3) + `.html?${deviceType.split("-")[0]}`;
+  const deviceType = backendOrEP
+    .split(" ")
+    [backendOrEP.split(" ").length - 1].toLowerCase()
+    .replace("webgpu", "gpu");
+  const testLink = link.slice(0, link.length - 3) + `.html?${deviceType}`;
   console.log(`>>> Test link: ${testLink}`);
 
   let results = [];
@@ -187,14 +169,14 @@ async function getTestResult(link, deviceType, timeoutTestLinks, lastRerun) {
   return results;
 }
 
-async function runByDevice(testLinks, deviceType, lastRerun = false) {
+async function runByDevice(testLinks, backendOrEP, lastRerun = false) {
   let totalResults = [];
   let timeoutTestLinks = [];
 
   for (const link of testLinks) {
     const results = await getTestResult(
       link,
-      deviceType,
+      backendOrEP,
       timeoutTestLinks,
       lastRerun,
     );
@@ -207,14 +189,14 @@ async function runByDevice(testLinks, deviceType, lastRerun = false) {
 async function run() {
   try {
     let mailStatus;
-    currentVersion = getCanaryVersion();
-    console.log(`>>> Current Chrome Canary version: ${currentVersion}`);
+    currentVersion = getBrowserVersion();
+    console.log(`>>> Current browser version: ${currentVersion}`);
 
     const lastTestedVersionFile = path.join(currentPath, "LastTestedVersion");
 
     if (fs.existsSync(lastTestedVersionFile)) {
       lastVersion = fs.readFileSync(lastTestedVersionFile).toString();
-      console.log(`>>> Last tested Chrome Canary version: ${lastVersion}`);
+      console.log(`>>> Last tested browser version: ${lastVersion}`);
     }
 
     const resultFolder = path.join(currentPath, "result", currentVersion);
@@ -229,38 +211,38 @@ async function run() {
     let csvResultFileArray = [];
     let notRunTests = {};
 
-    for (const deviceType of deviceTypeArray) {
-      console.log(`>>> Test by ${deviceType}`);
+    for (const backendOrEP of config.targetBackendOrEP) {
+      console.log(`>>> Test by ${backendOrEP}`);
 
       let [resultByDevice, timeoutTestLinks] = await runByDevice(
         testLinks,
-        deviceType,
+        backendOrEP,
       );
 
       if (timeoutTestLinks.length > 0) {
         // First run timeout tests
         const [rerunResult, rerunTimeoutTestLinks] = await runByDevice(
           timeoutTestLinks,
-          deviceType,
+          backendOrEP,
         );
         resultByDevice = resultByDevice.concat(rerunResult);
         if (rerunTimeoutTestLinks.length > 0) {
           // Second run timeout tests
           const [rerunResult2nd, rerunTimeoutTestLinks2nd] = await runByDevice(
             rerunTimeoutTestLinks,
-            deviceType,
+            backendOrEP,
           );
           resultByDevice = resultByDevice.concat(rerunResult2nd);
           if (rerunTimeoutTestLinks2nd.length > 0) {
             // Third run timeout tests
             const [rerunResult3rd, rerunTimeoutTestLinks3rd] =
-              await runByDevice(rerunTimeoutTestLinks2nd, deviceType, true);
+              await runByDevice(rerunTimeoutTestLinks2nd, backendOrEP, true);
             resultByDevice = resultByDevice.concat(rerunResult3rd);
             if (rerunTimeoutTestLinks3rd.length > 0) {
               console.log(
-                `>>> Please check these timeout tests for testing ${deviceType}: ${rerunTimeoutTestLinks3rd}`,
+                `>>> Please check these timeout tests for testing ${backendOrEP}: ${rerunTimeoutTestLinks3rd}`,
               );
-              notRunTests[deviceType] = rerunTimeoutTestLinks3rd;
+              notRunTests[backendOrEP] = rerunTimeoutTestLinks3rd;
             }
           }
         }
@@ -272,7 +254,7 @@ async function run() {
         (_, output) => {
           const csvFile = path.join(
             resultFolder,
-            `conformance_tests_result-${deviceType}.csv`,
+            `conformance_tests_result-${backendOrEP}.csv`,
           );
           csvResultFileArray.push(csvFile);
           fs.writeFile(csvFile, output, () => {
@@ -302,7 +284,7 @@ async function run() {
     console.error(`>>> Failed to run test: ${e.message}.`);
   }
 
-  killChrome();
+  killBrowser();
 }
 
 run();
