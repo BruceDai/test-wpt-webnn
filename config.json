@@ -16,12 +16,11 @@
     // please modify your test backend or ep
     "targetBackendOrEP": [
         "ToModifyBackendOrEP1",
-        "ToModifyBackendOrEP"
+        "ToModifyBackendOrEP2"
     ],
 
-     // Code would replace ToReplaceBy*** in below browserLaunchArgs by these three specified paths
-     // please modify your paths for below three settings 
-    "officalORTPath": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsAppRuntime.1.8-experimental4_8000.548.2012.0_x64__8wekyb3d8bbwe",
+     // Code would replace ToReplaceBy*** in below browserLaunchArgs by these two specified paths
+     // please modify your paths for below two settings
     "nightlyORTPath": "C:\\Program Files\\ONNXRuntime",
     "nightlyPluginPath": "C:\\Program Files\\ONNXRuntime-OVEP\\onnxruntime_providers_openvino_plugin.dll",
 
@@ -43,29 +42,20 @@
         // Official ORT EP
         "ORT Default CPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
-             // placeholder webnn-ort-library-path-for-testing switch
-            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath",
              // use fakepath to avoid path error
             "--webnn-ort-ep-library-path-for-testing='fakepath'"
         ],
-        // use default OV EP, no need use "--webnn-ort-ep-library-path-for-testing" switch
         "ORT OV CPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
-            // placeholder webnn-ort-library-path-for-testing switch
-            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath"
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
         ],
         "ORT OV GPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
-            // placeholder webnn-ort-library-path-for-testing switch
-            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath"
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
         ],
         "ORT OV NPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
-            // placeholder webnn-ort-library-path-for-testing switch
-            "--webnn-ort-library-path-for-testing=ToReplaceByOfficalORTPath"
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
         ],
     
-        // Nightly build OV EP
+        // Nightly build ORT EP
         "Nightly ORT Default CPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
             // placeholder webnn-ort-library-path-for-testing switch
