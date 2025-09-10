@@ -1,0 +1,41 @@
+{
+    // please modify testPurpose which is used in report content
+    "testPurpose": "your test purpose",
+    // current targetBrowser supports "Chrome Canary" or "Edge Canary"
+    // please modify targetBrowser if you want to test "Edge Canary"
+    "targetBrowser": "Chrome Canary",
+    // current targetPlatform only supports "Windows" platform 
+    "targetPlatform": "Windows",
+    // please modify your test binary path
+    "browserPath": {
+        "Chrome Canary": "C:\\Users\\webnn\\AppData\\Local\\Google\\Chrome SxS\\Application\\chrome.exe",
+        "Edge Canary": "C:\\Users\\webnn\\AppData\\Local\\Microsoft\\Edge SxS\\Application\\msedge.exe"
+    },
+    // please modify targetBackendOrEP setting according to the keys of below browserLaunchArgs.
+    "targetBackendOrEP": [
+        "ToModifyYourCustomEP"
+    ],
+    // please modify extra launch arguments for custom EP if needed
+    "browserLaunchArgs": {
+        // custom EP
+        "ToModifyYourCustomEP": [
+            "--enable-features=WebMachineLearningNeuralNetwork",
+            "add extra args here or remove this line if not needed"
+        ]
+    },
+    // please modify emailService settings
+    "emailService": {
+        "serverConfig": {
+            "host": "server host",
+            "port": "port number" // for example 25
+        },
+        "from": "your email address",
+        "to": [
+            "user1 email address",
+            "user2 email address"
+        ]
+    },
+    // npuDriverVersion setting is only for test by npu
+    // please modify your npu driver version when testing by npu, or, need remove it
+    "npuDriverVersion": "version"
+}

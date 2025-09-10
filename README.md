@@ -52,7 +52,8 @@ tbb12.dll (dependency of openvino.dll)
 ```
 
 ### Configure settings in config.json
-Please modify settings in config.json.
+Please modify settings in config.json.<br>
+Please modify settings in config_customEP.json and rename it as config.json if you want to test your custom EP.
 
 ### Running Test
 ```batch

@@ -1,6 +1,7 @@
 {
     // please modify testPurpose which is used in report content
     "testPurpose": "your test purpose",
+    // please modify targetBrowser setting according to the keys of below browserPath
     // current targetBrowser supports "Chrome Canary" or "Edge Canary"
     // please modify targetBrowser if you want to test "Edge Canary"
     "targetBrowser": "Chrome Canary",
@@ -11,6 +12,7 @@
         "Chrome Canary": "C:\\Users\\webnn\\AppData\\Local\\Google\\Chrome SxS\\Application\\chrome.exe",
         "Edge Canary": "C:\\Users\\webnn\\AppData\\Local\\Microsoft\\Edge SxS\\Application\\msedge.exe"
     },
+    // please modify targetBackendOrEP setting according to the keys of below browserLaunchArgs.
     // current targetBackendOrEP supports "LiteRT XNNPACK CPU", "LiteRT MLDrift GPU", "DML GPU", "ORT Default CPU", "ORT OV CPU", "ORT OV GPU", "ORT OV NPU",
     // "Nightly ORT Default CPU", "Nightly ORT WebGPU", "Nightly ORT OV CPU", "Nightly ORT OV GPU", "Nightly ORT OV NPU"
     // please modify your test backend or ep
