@@ -44,8 +44,8 @@
         // Official ORT EP
         "ORT Default CPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
-             // use fakepath to avoid path error
-            "--webnn-ort-ep-library-path-for-testing='fakepath'"
+             // use fakepath to force the OV EP registration failing
+            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?fakepath"
         ],
         "ORT OV CPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
@@ -62,16 +62,16 @@
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
             // placeholder webnn-ort-library-path-for-testing switch
             "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
-            // use fakepath to avoid path error
-            "--webnn-ort-ep-library-path-for-testing='fakepath'",
+            // use fakepath to force the OV EP registration failing
+            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?fakepath",
             "--allow-third-party-modules"
         ],
         "Nightly ORT WebGPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
             // placeholder webnn-ort-library-path-for-testing switch
             "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
-            // use fakepath to avoid path error
-            "--webnn-ort-ep-library-path-for-testing='fakepath'",
+            // use fakepath to force the OV EP registration failing
+            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?fakepath",
             "--allow-third-party-modules"
         ],
         "Nightly ORT OV CPU": [
@@ -79,7 +79,7 @@
             // placeholder webnn-ort-library-path-for-testing switch
             "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
             // placeholder webnn-ort-ep-library-path-for-testing switch
-            "--webnn-ort-ep-library-path-for-testing=ToReplaceByNightlyPluginPath",
+            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?ToReplaceByNightlyPluginPath",
             "--allow-third-party-modules"
         ],
         "Nightly ORT OV GPU": [
@@ -87,7 +87,7 @@
             // placeholder webnn-ort-library-path-for-testing switch
             "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
             // placeholder webnn-ort-ep-library-path-for-testing switch
-            "--webnn-ort-ep-library-path-for-testing=ToReplaceByNightlyPluginPath",
+            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?ToReplaceByNightlyPluginPath",
             "--allow-third-party-modules"
         ],
         "Nightly ORT OV NPU": [
@@ -95,7 +95,7 @@
             // placeholder webnn-ort-library-path-for-testing switch
             "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
             // placeholder webnn-ort-ep-library-path-for-testing switch
-            "--webnn-ort-ep-library-path-for-testing=ToReplaceByNightlyPluginPath",
+            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?ToReplaceByNightlyPluginPath",
             "--allow-third-party-modules"
         ]
     },

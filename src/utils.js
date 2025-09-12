@@ -39,7 +39,7 @@ function replacePlaceholders(config) {
 
           // Replace the placeholder with the corresponding config value
           if (config[configKey]) {
-            return arg.replace(placeholder, config[configKey]);
+            return arg.replace(placeholder, `"${config[configKey]}"`);
           }
         }
         return arg; // Return the argument unchanged if no placeholder is found
