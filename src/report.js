@@ -108,8 +108,25 @@ async function getTestEnvironmentInfo(currentVersion) {
   }
 
   // NPU
-  if (config.npuDriverVersion) {
-    environmentInfo["npuDriverVersion"] = config.npuDriverVersion;
+  try {
+    if (environmentInfo.platform === "win32") {
+      const info = execSync(
+        `powershell -Command "Get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceName -like \\"*AI Boost*\\"} | Select-Object  DeviceName,DeviceID,DriverVersion | ConvertTo-Json"`,
+      )
+        .toString()
+        .trim();
+      const npuInfo = JSON.parse(info);
+      environmentInfo["npuName"] = npuInfo["DeviceName"];
+      const match = npuInfo["DeviceID"].match(".*DEV_(.{4})");
+      environmentInfo["npuDeviceId"] = match
+        ? match[1].toUpperCase()
+        : "Unknown";
+      environmentInfo["npuDriverVersion"] = npuInfo["DriverVersion"];
+    }
+  } catch (error) {
+    console.error(
+      `>>> Error occurred while getting NPU info\n. Error Details: ${error}`,
+    );
   }
 
   return environmentInfo;

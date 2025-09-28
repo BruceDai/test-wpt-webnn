@@ -34,8 +34,5 @@
             "user1 email address",
             "user2 email address"
         ]
-    },
-    // npuDriverVersion setting is only for test by npu
-    // please modify your npu driver version when testing by npu, or, need remove it
-    "npuDriverVersion": "version"
+    }
 }
