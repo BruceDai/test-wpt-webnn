@@ -1,4 +1,9 @@
+const dayjs = require("dayjs");
 const fs = require("fs");
+
+function getTimestamp(template = "MM/DD") {
+  return dayjs(Date.now()).format(template);
+}
 
 /**
  * Parses a JSON file with comments.
@@ -51,4 +56,4 @@ function replacePlaceholders(config) {
 const config = parseConfigWithComments("config.json");
 replacePlaceholders(config);
 
-module.exports = { config };
+module.exports = { config, getTimestamp };

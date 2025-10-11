@@ -6,26 +6,18 @@ const puppeteer = require("puppeteer-core");
 const sleep = require("sleep");
 const { execSync, spawnSync } = require("child_process");
 const { stringify } = require("csv-stringify");
-const { config } = require("./utils.js");
+const { config, getTimestamp } = require("./utils.js");
 const { sendMail } = require("./report.js");
 
 const msTimeout = 300000; // 5 minutes
 const currentPath = process.cwd();
-let currentBrowser = null;
-
-const headersURLList = [
-  "https://wpt.live/webnn/conformance_tests/byob_readtensor.https.any.js.headers",
-  "https://wpt.live/webnn/conformance_tests/shared_arraybuffer_constant.https.any.js.headers",
-  "https://wpt.live/webnn/conformance_tests/tensor.https.any.js.headers",
-];
-
 const resultColumns = {
   testsuite: "Test Suite",
   testcase: "Test Case",
   status: "Status",
   message: "Message",
 };
-
+let currentBrowser = null;
 let lastVersion = null;
 let currentVersion = null;
 
@@ -56,7 +48,7 @@ async function getConformanceTestLinks() {
   await page.close();
   await browser.close();
 
-  return links.filter((link) => !headersURLList.includes(link));
+  return links.filter((link) => !link.endsWith("headers"));
 }
 
 function getTestsuiteName(link) {
@@ -79,23 +71,44 @@ function killBrowser() {
   spawnSync("cmd", ["/c", `taskkill /F /IM ${binaryName} /T`]);
 }
 
+function getLaunchArgs(backendOrEP) {
+  let launchArgs;
+
+  if (backendOrEP === undefined) {
+    launchArgs = [];
+  } else {
+    launchArgs = JSON.parse(
+      JSON.stringify(config.browserLaunchArgs[backendOrEP]),
+    );
+  }
+
+  return launchArgs;
+}
+
 async function setBrowser(backendOrEP) {
   killBrowser();
 
-  const userDataDir = path.join(os.tmpdir(), backendOrEP);
+  const userDataDir = path.join(
+    os.tmpdir(),
+    backendOrEP ?? getTimestamp("YYYYMMDDHHmmss"),
+  );
+
   if (fs.existsSync(userDataDir)) {
     fs.rmSync(userDataDir, { recursive: true, force: true });
   }
   fs.mkdirpSync(userDataDir);
+
   const browser = await puppeteer.launch({
-    args: backendOrEP ? config.browserLaunchArgs[backendOrEP] : [],
+    args: getLaunchArgs(backendOrEP),
     executablePath: config.browserPath[config.targetBrowser],
     headless: false,
     ignoreHTTPSErrors: true,
     protocolTimeout: msTimeout,
     userDataDir: userDataDir,
   });
+
   sleep.sleep(3);
+
   return browser;
 }
 

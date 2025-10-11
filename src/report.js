@@ -1,23 +1,11 @@
 const os = require("os");
 const path = require("path");
 const csv = require("csv-parser");
-const dayjs = require("dayjs");
 const { execSync } = require("child_process");
 const fs = require("fs-extra");
 const nodemailer = require("nodemailer");
 const si = require("systeminformation");
-const { config } = require("./utils.js");
-
-function getTimestamp(minute = false) {
-  const timestamp = Date.now();
-  let formattedTimestamp;
-  if (minute === true) {
-    formattedTimestamp = dayjs(timestamp).format("YYYYMMDDHHmm");
-  } else {
-    formattedTimestamp = dayjs(timestamp).format("MM/DD");
-  }
-  return formattedTimestamp;
-}
+const { config, getTimestamp } = require("./utils.js");
 
 async function getTestEnvironmentInfo(currentVersion) {
   const environmentInfo = {};
@@ -25,8 +13,14 @@ async function getTestEnvironmentInfo(currentVersion) {
   environmentInfo["platform"] = os.platform();
   environmentInfo["testUrl"] = "https://wpt.live/webnn/conformance_tests/";
   environmentInfo[config.targetBrowser] = currentVersion;
-  environmentInfo["testCommand"] =
-    `${config.browserLaunchArgs[backendOrEP]} ${config.browserPath[config.targetBrowser].join(" ")}`;
+  config.targetBackendOrEP.forEach((backendOrEP) => {
+    const commandKey = `testCommand (${backendOrEP})`;
+    environmentInfo[commandKey] =
+      `"${config.browserPath[config.targetBrowser]}", ${config.browserLaunchArgs[backendOrEP]}`.replaceAll(
+        ",",
+        " ",
+      );
+  });
 
   // CPU
   const cpuData = await si.cpu();
