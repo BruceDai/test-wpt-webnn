@@ -11,16 +11,13 @@ Download and install the latest [Node.js LTS release](https://nodejs.org/en/down
 Download and install the latest [Chrome
 Canary](https://www.google.com/chrome/canary/).
 
-- Windows ML Runtime & Windows ML Runtime Intel OpenVINO
-  Execution Provider to run WebNN on Windows ML
-  backend (CPU, GPU and NPU)
+- Optional Install Windows App SDK & Install Execution Providers via the EP Catalog executable file for testing ORT EPs.
 
-Install [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads)
+Please follow https://webnn.io/en/learn/get-started/installation#run-webnn-on-windows-ml-backend-cpu-gpu-and-npu.
 
-Install [Windows ML Runtime Intel OpenVINO Execution Provider](https://apps.microsoft.com/detail/9ph4ckr43xlp) from Microsoft Store
+Note: Do not install Execution Providers if you want to test ORT default CPU, GPU (DirectML) or ORT WebGPU EP.
 
-
-### Precondition for testing with own built ONNXRuntime and OpenVino EP dlls
+### Precondition A - Testing with own built ONNXRuntime and OpenVino EP dlls
 Prepare for target ONNXRuntime libraries and ONNXRuntime OpenVino EP
 libraries, then follow below two steps.
 
@@ -42,6 +39,16 @@ openvino_intel_gpu_plugin.dll (for GPU inference)
 openvino_intel_npu_plugin.dll (for NPU inference)
 openvino_onnx_frontend.dll (for converting ONNX model to OpenVINO IR)
 tbb12.dll (dependency of openvino.dll)
+```
+
+### Precondition B - Testing with own built ONNXRuntime and WebGPU EP dlls
+Step1: Build ONNXRuntime WebGPU EP.
+
+Step2: Make a directory named "ONNXRuntime" under %ProgramFiles%, then
+copy below ONNXRuntime libraries into it.
+```
+onnxruntime.dll
+onnxruntime_providers_shared.dll
 ```
 
 ### Installing

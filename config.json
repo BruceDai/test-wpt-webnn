@@ -36,16 +36,18 @@
             "--enable-features=WebMachineLearningNeuralNetwork"
         ],
     
-        // DML GPU backend -- it will be depreciated
+        // DirectML backend -- it will be depreciated
         "DML GPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNDirectML"
         ],
     
-        // Official ORT EP
+        // ORT CPU EP
         "ORT Default CPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
-             // use fakepath to force the OV EP registration failing
-            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?fakepath"
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
+        ],
+        // ORT GPU (DirectML) EP
+        "ORT Default GPU": [
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
         ],
         "ORT OV CPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
@@ -70,8 +72,6 @@
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
             // placeholder webnn-ort-library-path-for-testing switch
             "--webnn-ort-library-path-for-testing=ToReplaceByNightlyORTPath",
-            // use fakepath to force the OV EP registration failing
-            "--webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?fakepath",
             "--allow-third-party-modules"
         ],
         "Nightly ORT OV CPU": [
