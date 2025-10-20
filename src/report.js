@@ -231,20 +231,19 @@ function transformNotRunTests(test) {
       [key.split(" ").length - 1].toLowerCase()
       .replace("webgpu", "gpu");
     urls.forEach((url) => {
-      const backendAndUrl = [key, url.replace(".js", ".html") + `?${device}`];
+      const testLink = url.replace(".js", ".html") + `?${device}`;
       if (!result[url]) {
         result[url] = [];
       }
-      if (!result[url].includes(backendAndUrl)) {
-        result[url].push(backendAndUrl);
+      if (!result[url].includes(testLink)) {
+        result[url].push(testLink);
       }
     });
   }
   // Convert the object into the array format
   return Object.entries(result).map(([key, value]) => ({
-    backend: value[0],
     suiteName: getTestsuiteName(key),
-    links: value[1],
+    links: value,
   }));
 }
 
@@ -326,7 +325,7 @@ async function formatResultsAsHTMLTable(
   transformedNotRunTests.forEach((test) => {
     test.links.forEach((link) =>
       notRunTestsArray.push(
-        `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${link}</td></tr>`
+        `<tr><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${link}</td></tr>`
       )
     );
   });
@@ -512,19 +511,6 @@ async function formatResultsAsHTMLTable(
     <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
       <thead>
         <tr>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Backend / EP
-          </th>
           <th style="
             border: 1px solid black; 
             padding: 0 4px 0 4px;
