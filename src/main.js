@@ -78,7 +78,7 @@ function getLaunchArgs(backendOrEP) {
     launchArgs = [];
   } else {
     launchArgs = JSON.parse(
-      JSON.stringify(config.browserLaunchArgs[backendOrEP]),
+      JSON.stringify(config.browserLaunchArgs[backendOrEP])
     );
   }
 
@@ -90,7 +90,7 @@ async function setBrowser(backendOrEP) {
 
   const userDataDir = path.join(
     os.tmpdir(),
-    backendOrEP ?? getTimestamp("YYYYMMDDHHmmss"),
+    backendOrEP ?? getTimestamp("YYYYMMDDHHmmss")
   );
 
   if (fs.existsSync(userDataDir)) {
@@ -156,7 +156,7 @@ async function getTestResult(link, backendOrEP, timeoutTestLinks, lastRerun) {
             result === "Fail"
               ? tdElements[2].innerHTML.slice(
                   0,
-                  tdElements[2].innerHTML.indexOf("<pre>"),
+                  tdElements[2].innerHTML.indexOf("<pre>")
                 )
               : "",
           ]);
@@ -164,7 +164,7 @@ async function getTestResult(link, backendOrEP, timeoutTestLinks, lastRerun) {
         return results;
       },
       testsuiteName,
-      lastRerun,
+      lastRerun
     );
 
     console.log(results);
@@ -191,7 +191,7 @@ async function runByDevice(testLinks, backendOrEP, lastRerun = false) {
       link,
       backendOrEP,
       timeoutTestLinks,
-      lastRerun,
+      lastRerun
     );
     totalResults = totalResults.concat(results);
   }
@@ -229,21 +229,21 @@ async function run() {
 
       let [resultByDevice, timeoutTestLinks] = await runByDevice(
         testLinks,
-        backendOrEP,
+        backendOrEP
       );
 
       if (timeoutTestLinks.length > 0) {
         // First run timeout tests
         const [rerunResult, rerunTimeoutTestLinks] = await runByDevice(
           timeoutTestLinks,
-          backendOrEP,
+          backendOrEP
         );
         resultByDevice = resultByDevice.concat(rerunResult);
         if (rerunTimeoutTestLinks.length > 0) {
           // Second run timeout tests
           const [rerunResult2nd, rerunTimeoutTestLinks2nd] = await runByDevice(
             rerunTimeoutTestLinks,
-            backendOrEP,
+            backendOrEP
           );
           resultByDevice = resultByDevice.concat(rerunResult2nd);
           if (rerunTimeoutTestLinks2nd.length > 0) {
@@ -253,7 +253,7 @@ async function run() {
             resultByDevice = resultByDevice.concat(rerunResult3rd);
             if (rerunTimeoutTestLinks3rd.length > 0) {
               console.log(
-                `>>> Please check these timeout tests for testing ${backendOrEP}: ${rerunTimeoutTestLinks3rd}`,
+                `>>> Please check these timeout tests for testing ${backendOrEP}: ${rerunTimeoutTestLinks3rd}`
               );
               notRunTests[backendOrEP] = rerunTimeoutTestLinks3rd;
             }
@@ -267,15 +267,15 @@ async function run() {
         (_, output) => {
           const csvFile = path.join(
             resultFolder,
-            `conformance_tests_result-${backendOrEP}.csv`,
+            `conformance_tests_result-${backendOrEP}.csv`
           );
           csvResultFileArray.push(csvFile);
           fs.writeFile(csvFile, output, () => {
             console.log(
-              `>>> Save WebNN WPT conformance tests results into ${csvFile}`,
+              `>>> Save WebNN WPT conformance tests results into ${csvFile}`
             );
           });
-        },
+        }
       );
     }
 
@@ -288,7 +288,7 @@ async function run() {
       currentVersion,
       lastVersion,
       csvResultFileArray,
-      notRunTests,
+      notRunTests
     );
     if (mailStatus) {
       console.log(">>> Successfully send email.");
