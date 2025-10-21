@@ -103,6 +103,7 @@ async function setBrowser(backendOrEP) {
     executablePath: config.browserPath[config.targetBrowser],
     headless: false,
     ignoreHTTPSErrors: true,
+    acceptInsecureCerts: true,
     protocolTimeout: msTimeout,
     userDataDir: userDataDir,
   });
