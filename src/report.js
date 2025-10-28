@@ -5,7 +5,9 @@ const { execSync } = require("child_process");
 const fs = require("fs-extra");
 const nodemailer = require("nodemailer");
 const si = require("systeminformation");
-const { config, getTimestamp } = require("./utils.js");
+const { getConfig, getTimestamp } = require("./utils.js");
+
+const config = getConfig();
 
 async function getTestEnvironmentInfo(currentVersion) {
   const environmentInfo = {};
@@ -18,7 +20,7 @@ async function getTestEnvironmentInfo(currentVersion) {
     environmentInfo[commandKey] =
       `"${config.browserPath[config.targetBrowser]}", ${config.browserLaunchArgs[backendOrEP]}`.replaceAll(
         ",",
-        " "
+        " ",
       );
   });
 
@@ -30,7 +32,7 @@ async function getTestEnvironmentInfo(currentVersion) {
   try {
     if (environmentInfo.platform === "win32") {
       const info = execSync(
-        `powershell -Command "Get-CimInstance -ClassName Win32_VideoController | Select-Object Name,DriverVersion,Status,PNPDeviceID | ConvertTo-Json"`
+        `powershell -Command "Get-CimInstance -ClassName Win32_VideoController | Select-Object Name,DriverVersion,Status,PNPDeviceID | ConvertTo-Json"`,
       )
         .toString()
         .trim();
@@ -97,7 +99,7 @@ async function getTestEnvironmentInfo(currentVersion) {
     }
   } catch (error) {
     console.error(
-      `>>> Error occurred while getting GPU info\n. Error Details: ${error}`
+      `>>> Error occurred while getting GPU info\n. Error Details: ${error}`,
     );
   }
 
@@ -105,7 +107,7 @@ async function getTestEnvironmentInfo(currentVersion) {
   try {
     if (environmentInfo.platform === "win32") {
       const info = execSync(
-        `powershell -Command "Get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceName -like \\"*AI Boost*\\"} | Select-Object  DeviceName,DeviceID,DriverVersion | ConvertTo-Json"`
+        `powershell -Command "Get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceName -like \\"*AI Boost*\\"} | Select-Object  DeviceName,DeviceID,DriverVersion | ConvertTo-Json"`,
       )
         .toString()
         .trim();
@@ -119,7 +121,7 @@ async function getTestEnvironmentInfo(currentVersion) {
     }
   } catch (error) {
     console.error(
-      `>>> Error occurred while getting NPU info\n. Error Details: ${error}`
+      `>>> Error occurred while getting NPU info\n. Error Details: ${error}`,
     );
   }
 
@@ -198,14 +200,14 @@ async function getSummaryResult(currentVersion, lastVersion, csvFileArray) {
         const [currentNewPassTests, currentRegressionTests] = diffResults(
           lastResults[0],
           currentResults[0],
-          backend
+          backend,
         );
         newPassTests = newPassTests.concat(currentNewPassTests);
         regressionTests = regressionTests.concat(currentRegressionTests);
       }
 
       return { passRates, newPassTests, regressionTests };
-    })
+    }),
   );
 }
 
@@ -251,7 +253,7 @@ async function formatResultsAsHTMLTable(
   currentVersion,
   lastVersion,
   csvFileArray,
-  notRunTests
+  notRunTests,
 ) {
   const resultObj = {
     html: {
@@ -275,7 +277,7 @@ async function formatResultsAsHTMLTable(
   const environmentInfoRows = formattedEnvironmentInfo
     .map(
       ({ category, detail }) =>
-        `<tr><td style="border: 1px solid black;">${category}</td><td style="border: 1px solid black;">${detail}</td></tr>`
+        `<tr><td style="border: 1px solid black;">${category}</td><td style="border: 1px solid black;">${detail}</td></tr>`,
     )
     .join("");
 
@@ -288,35 +290,35 @@ async function formatResultsAsHTMLTable(
   const rawSummary = await getSummaryResult(
     currentVersion,
     lastVersion,
-    csvFileArray
+    csvFileArray,
   );
 
   for (let deviceResult of rawSummary) {
     summary.passRates = summary.passRates.concat(deviceResult.passRates);
     summary.newPassTests = summary.newPassTests.concat(
-      deviceResult.newPassTests
+      deviceResult.newPassTests,
     );
     summary.regressionTests = summary.regressionTests.concat(
-      deviceResult.regressionTests
+      deviceResult.regressionTests,
     );
   }
 
   const passRateRows = summary.passRates
     .map(
       (passRate) =>
-        `<tr><td style="border: 1px solid black;">${passRate.backend}</td><td style="border: 1px solid black;">${((passRate.passNumber / passRate.totalNumber) * 100).toFixed(2)}% (${passRate.passNumber} / ${passRate.totalNumber})</td></tr>`
+        `<tr><td style="border: 1px solid black;">${passRate.backend}</td><td style="border: 1px solid black;">${((passRate.passNumber / passRate.totalNumber) * 100).toFixed(2)}% (${passRate.passNumber} / ${passRate.totalNumber})</td></tr>`,
     )
     .join("");
   const newPassTestsRows = summary.newPassTests
     .map(
       (test) =>
-        `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.testName}</td></tr>`
+        `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.testName}</td></tr>`,
     )
     .join("");
   const regressionTestsRows = summary.regressionTests
     .map(
       (test) =>
-        `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.testName}</td><td style="border: 1px solid black;">${test.message}</td></tr>`
+        `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.testName}</td><td style="border: 1px solid black;">${test.message}</td></tr>`,
     )
     .join("");
 
@@ -325,8 +327,8 @@ async function formatResultsAsHTMLTable(
   transformedNotRunTests.forEach((test) => {
     test.links.forEach((link) =>
       notRunTestsArray.push(
-        `<tr><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${link}</td></tr>`
-      )
+        `<tr><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${link}</td></tr>`,
+      ),
     );
   });
 
@@ -550,12 +552,12 @@ async function sendMail(
   currentVersion,
   lastVersion,
   csvFileArray = [],
-  notRunTests = {}
+  notRunTests = {},
 ) {
   console.log(">>> Sending email...");
   const subject = `${getTimestamp()} - Nightly WPT WebNN Conformance Test Report by ${os.hostname()}`;
   let transporter = nodemailer.createTransport(
-    config.emailService.serverConfig
+    config.emailService.serverConfig,
   );
 
   try {
@@ -572,7 +574,7 @@ async function sendMail(
         <p>None new released build, skip this Nightly WPT Conformance Test.</p>
       `;
       console.log(
-        ">>> None new released build, skip this Nightly WPT Conformance Test."
+        ">>> None new released build, skip this Nightly WPT Conformance Test.",
       );
     } else {
       if (csvFileArray.length === 0) {
@@ -591,7 +593,7 @@ async function sendMail(
         currentVersion,
         lastVersion,
         csvFileArray,
-        notRunTests
+        notRunTests,
       );
       const environmentInfoTable = htmlResult.html.environmentInfoTable;
       const passRateTable = htmlResult.html.passRateTable;

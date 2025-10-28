@@ -1,5 +1,5 @@
 const dayjs = require("dayjs");
-const fs = require("fs");
+const fs = require("fs-extra");
 
 function getTimestamp(template = "MM/DD") {
   return dayjs(Date.now()).format(template);
@@ -53,7 +53,10 @@ function replacePlaceholders(config) {
   }
 }
 
-const config = parseConfigWithComments("config.json");
-replacePlaceholders(config);
+function getConfig() {
+  let config = parseConfigWithComments("config.json");
+  replacePlaceholders(config);
+  return config;
+}
 
-module.exports = { config, getTimestamp };
+module.exports = { getConfig, getTimestamp };
