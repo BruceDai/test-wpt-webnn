@@ -18,10 +18,7 @@ async function getTestEnvironmentInfo(currentVersion) {
   config.targetBackendOrEP.forEach((backendOrEP) => {
     const commandKey = `testCommand (${backendOrEP})`;
     environmentInfo[commandKey] =
-      `"${config.browserPath[config.targetBrowser]}", ${config.browserLaunchArgs[backendOrEP]}`.replaceAll(
-        ",",
-        " ",
-      );
+      `"${config.browserPath[config.targetBrowser]}" ${config.browserLaunchArgs[backendOrEP].join(' ')}`;
   });
 
   // CPU
