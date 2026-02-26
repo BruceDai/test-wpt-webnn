@@ -18,7 +18,7 @@ async function getTestEnvironmentInfo(currentVersion) {
   config.targetBackendOrEP.forEach((backendOrEP) => {
     const commandKey = `testCommand (${backendOrEP})`;
     environmentInfo[commandKey] =
-      `"${config.browserPath[config.targetBrowser]}" ${config.browserLaunchArgs[backendOrEP].join(' ')}`;
+      `"${config.browserPath[config.targetBrowser]}" ${config.browserLaunchArgs[backendOrEP].join(" ")}`;
   });
 
   // CPU
@@ -223,7 +223,7 @@ function getTestsuiteName(link) {
 }
 
 function transformNotRunTests(test) {
-  const result = {};
+  const result = [];
   for (const [key, urls] of Object.entries(test)) {
     const device = key
       .split(" ")
@@ -231,25 +231,22 @@ function transformNotRunTests(test) {
       .replace("webgpu", "gpu");
     urls.forEach((url) => {
       const testLink = url.replace(".js", ".html") + `?${device}`;
-      if (!result[url]) {
-        result[url] = [];
-      }
-      if (!result[url].includes(testLink)) {
-        result[url].push(testLink);
-      }
+      result.push({
+        backend: key,
+        suiteName: getTestsuiteName(url),
+        link: testLink,
+      });
     });
   }
-  // Convert the object into the array format
-  return Object.entries(result).map(([key, value]) => ({
-    suiteName: getTestsuiteName(key),
-    links: value,
-  }));
+
+  return result;
 }
 
 async function formatResultsAsHTMLTable(
   currentVersion,
   lastVersion,
   csvFileArray,
+  crashTests,
   notRunTests,
 ) {
   const resultObj = {
@@ -258,6 +255,7 @@ async function formatResultsAsHTMLTable(
       passRateTable: "",
       newPassTestsTable: "",
       regressionTestsTable: "",
+      crashTestsTable: "",
       notRunTestsTable: "",
     },
   };
@@ -319,13 +317,21 @@ async function formatResultsAsHTMLTable(
     )
     .join("");
 
+  const transformedCrashTests = transformNotRunTests(crashTests);
+  let crashTestsArray = [];
+  transformedCrashTests.forEach((test) => {
+    crashTestsArray.push(
+      `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.link}</td></tr>`,
+    );
+  });
+
+  const crashTestsRows = crashTestsArray.join("");
+
   const transformedNotRunTests = transformNotRunTests(notRunTests);
   let notRunTestsArray = [];
   transformedNotRunTests.forEach((test) => {
-    test.links.forEach((link) =>
-      notRunTestsArray.push(
-        `<tr><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${link}</td></tr>`,
-      ),
+    notRunTestsArray.push(
+      `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.link}</td></tr>`,
     );
   });
 
@@ -504,12 +510,76 @@ async function formatResultsAsHTMLTable(
   `
       : null;
 
+  resultObj.html.crashTestsTable =
+    crashTestsArray.length > 0
+      ? `
+    <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
+      <thead>
+        <tr>
+          <th style="
+            border: 1px solid black; 
+            padding: 0 4px 0 4px;
+            background-color:rgb(4,116,196);
+            text-align: center; 
+            vertical-align: middle; 
+            color:white;
+            min-width: 50px;
+            width: 50px;
+            max-width: 50px
+          ">
+            Backend
+          </th>
+          <th style="
+            border: 1px solid black; 
+            padding: 0 4px 0 4px;
+            background-color:rgb(4,116,196);
+            text-align: center; 
+            vertical-align: middle; 
+            color:white;
+            min-width: 50px;
+            width: 50px;
+            max-width: 50px
+          ">
+            Test Suite
+          </th>
+          <th style="
+            border: 1px solid black; 
+            padding: 0 4px 0 4px;
+            background-color:rgb(4,116,196); 
+            text-align: center; 
+            vertical-align: middle; 
+            color:white
+          ">
+            Test URL
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        ${crashTestsRows}
+      </tbody>
+    </table>
+  `
+      : null;
+
   resultObj.html.notRunTestsTable =
     notRunTestsArray.length > 0
       ? `
     <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
       <thead>
         <tr>
+          <th style="
+            border: 1px solid black; 
+            padding: 0 4px 0 4px;
+            background-color:rgb(4,116,196);
+            text-align: center; 
+            vertical-align: middle; 
+            color:white;
+            min-width: 50px;
+            width: 50px;
+            max-width: 50px
+          ">
+            Backend
+          </th>
           <th style="
             border: 1px solid black; 
             padding: 0 4px 0 4px;
@@ -549,10 +619,11 @@ async function sendMail(
   currentVersion,
   lastVersion,
   csvFileArray = [],
+  crashTests = {},
   notRunTests = {},
 ) {
   console.log(">>> Sending email...");
-  const subject = `${getTimestamp()} - Nightly WPT WebNN Conformance Test Report by ${os.hostname()}`;
+  const subject = `${getTimestamp()} - [ORT][OV EPs]Nightly WPT WebNN Conformance Test Report by ${os.hostname()}`;
   let transporter = nodemailer.createTransport(
     config.emailService.serverConfig,
   );
@@ -590,6 +661,7 @@ async function sendMail(
         currentVersion,
         lastVersion,
         csvFileArray,
+        crashTests,
         notRunTests,
       );
       const environmentInfoTable = htmlResult.html.environmentInfoTable;
@@ -613,6 +685,7 @@ async function sendMail(
 
       const newPassTestsTable = htmlResult.html.newPassTestsTable;
       const regressionTestsTable = htmlResult.html.regressionTestsTable;
+      const crashTestsTable = htmlResult.html.crashTestsTable;
       const notRunTestsTable = htmlResult.html.notRunTestsTable;
 
       if (newPassTestsTable) {
@@ -623,6 +696,11 @@ async function sendMail(
       if (regressionTestsTable) {
         htmlContent += `<p style="color:red;"><strong>Regression Test Case</strong></p>
           ${regressionTestsTable}`;
+      }
+
+      if (crashTestsTable) {
+        htmlContent += `<p style="color:red;"><strong>Crash Test</strong></p>
+          ${crashTestsTable}`;
       }
 
       if (notRunTestsTable) {

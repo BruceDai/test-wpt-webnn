@@ -50,6 +50,11 @@ async function getConformanceTestLinks() {
   await browser.close();
 
   return links.filter((link) => !link.endsWith("headers"));
+  // return [
+  //   "https://wpt.live/webnn/conformance_tests/abs.https.any.js",
+  //   "https://wpt.live/webnn/conformance_tests/softsign.https.any.js",
+  //   "https://wpt.live/webnn/conformance_tests/softmax.https.any.js",
+  // ];
 }
 
 function getTestsuiteName(link) {
@@ -140,36 +145,67 @@ async function getTestResult(link, backendOrEP, timeoutTestLinks, lastRerun) {
     await page.goto(testLink, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#results > tbody > tr");
 
-    results = await page.$$eval(
-      "#results > tbody > tr",
-      (trElements, testsuiteName, lastRerun) => {
-        const results = [];
-        for (const tr of trElements) {
-          const tdElements = tr.getElementsByTagName("td");
-          const testcaseName = tdElements[1].innerHTML;
-          const result = tdElements[0].innerHTML;
-          if (!lastRerun && (result === "Timeout" || result === "Not Run")) {
-            throw new Error(`Timeout to run ${testcaseName}`);
-          }
-          results.push([
-            testsuiteName,
-            testcaseName,
-            result,
-            result === "Fail"
-              ? tdElements[2].innerHTML.slice(
-                  0,
-                  tdElements[2].innerHTML.indexOf("<pre>"),
-                )
-              : "",
-          ]);
-        }
-        return results;
-      },
-      testsuiteName,
-      lastRerun,
+    const gpuPage = await currentBrowser.newPage();
+    await gpuPage.goto("chrome://gpu", { waitUntil: "networkidle0" });
+    await gpuPage.waitForFunction(() => {
+      const infoView = document.querySelector("info-view").shadowRoot;
+      return (
+        infoView.querySelector(
+          "#content > div:last-child > h3 > span:nth-child(2)",
+        ).innerText === "Log Messages"
+      );
+    });
+    const gpuLogMessages = await gpuPage.evaluate(() => {
+      const infoView = document.querySelector("info-view").shadowRoot;
+      return Array.from(
+        infoView.querySelectorAll("#content > div:last-child > ul > li"),
+      ).map((el) => el.innerText);
+    });
+    const webnnErrorMessages = gpuLogMessages.filter((message) =>
+      message.includes("GpuProcessHost: The GPU process crashed!"),
     );
+    // .map((message) => message.split("[WebNN]", 2)[1]);
+    if (webnnErrorMessages.length > 0) {
+      // result.error = webnnErrorMessages;
+      results.push([
+        testsuiteName,
+        testsuiteName,
+        "Crash",
+        webnnErrorMessages.join("\n"),
+      ]);
+    } else {
+      results = await page.$$eval(
+        "#results > tbody > tr",
+        (trElements, testsuiteName, lastRerun) => {
+          const results = [];
+          for (const tr of trElements) {
+            const tdElements = tr.getElementsByTagName("td");
+            const testcaseName = tdElements[1].innerHTML;
+            const result = tdElements[0].innerHTML;
+            if (!lastRerun && (result === "Timeout" || result === "Not Run")) {
+              throw new Error(`Timeout to run ${testcaseName}`);
+            }
+            results.push([
+              testsuiteName,
+              testcaseName,
+              result,
+              result === "Fail"
+                ? tdElements[2].innerHTML.slice(
+                    0,
+                    tdElements[2].innerHTML.indexOf("<pre>"),
+                  )
+                : "",
+            ]);
+          }
+          return results;
+        },
+        testsuiteName,
+        lastRerun,
+      );
+      console.log(results);
+    }
 
-    console.log(results);
+    await gpuPage.close();
     await page.close();
   } catch (e) {
     if (e instanceof puppeteer.TimeoutError) {
@@ -187,6 +223,7 @@ async function getTestResult(link, backendOrEP, timeoutTestLinks, lastRerun) {
 async function runByDevice(testLinks, backendOrEP, lastRerun = false) {
   let totalResults = [];
   let timeoutTestLinks = [];
+  let crashTestLinks = [];
 
   for (const link of testLinks) {
     const results = await getTestResult(
@@ -195,10 +232,13 @@ async function runByDevice(testLinks, backendOrEP, lastRerun = false) {
       timeoutTestLinks,
       lastRerun,
     );
+    if (results && results[0] && results[0][2] === "Crash") {
+      crashTestLinks.push(link);
+    }
     totalResults = totalResults.concat(results);
   }
 
-  return [totalResults, timeoutTestLinks];
+  return [totalResults, timeoutTestLinks, crashTestLinks];
 }
 
 async function run() {
@@ -225,34 +265,45 @@ async function run() {
     }
 
     let csvResultFileArray = [];
+    let crashTests = {};
     let notRunTests = {};
 
     for (const backendOrEP of config.targetBackendOrEP) {
       console.log(`>>> Test by ${backendOrEP}`);
 
-      let [resultByDevice, timeoutTestLinks] = await runByDevice(
-        testLinks,
-        backendOrEP,
-      );
+      let [resultByDevice, timeoutTestLinks, crashTestLinks] =
+        await runByDevice(testLinks, backendOrEP);
+
+      if (crashTestLinks.length > 0) {
+        crashTests[backendOrEP] = crashTestLinks;
+      }
 
       if (timeoutTestLinks.length > 0) {
         // First run timeout tests
-        const [rerunResult, rerunTimeoutTestLinks] = await runByDevice(
-          timeoutTestLinks,
-          backendOrEP,
-        );
+        const [rerunResult, rerunTimeoutTestLinks, crashTestLinks1st] =
+          await runByDevice(timeoutTestLinks, backendOrEP);
+        if (crashTestLinks1st.length > 0) {
+          crashTests[backendOrEP] = crashTestLinks1st;
+        }
         resultByDevice = resultByDevice.concat(rerunResult);
         if (rerunTimeoutTestLinks.length > 0) {
           // Second run timeout tests
-          const [rerunResult2nd, rerunTimeoutTestLinks2nd] = await runByDevice(
-            rerunTimeoutTestLinks,
-            backendOrEP,
-          );
+          const [rerunResult2nd, rerunTimeoutTestLinks2nd, crashTestLinks2nd] =
+            await runByDevice(rerunTimeoutTestLinks, backendOrEP);
+          if (crashTestLinks2nd.length > 0) {
+            crashTests[backendOrEP] = crashTestLinks2nd;
+          }
           resultByDevice = resultByDevice.concat(rerunResult2nd);
           if (rerunTimeoutTestLinks2nd.length > 0) {
             // Third run timeout tests
-            const [rerunResult3rd, rerunTimeoutTestLinks3rd] =
-              await runByDevice(rerunTimeoutTestLinks2nd, backendOrEP, true);
+            const [
+              rerunResult3rd,
+              rerunTimeoutTestLinks3rd,
+              crashTestLinks3rd,
+            ] = await runByDevice(rerunTimeoutTestLinks2nd, backendOrEP, true);
+            if (crashTestLinks3rd.length > 0) {
+              crashTests[backendOrEP] = crashTestLinks3rd;
+            }
             resultByDevice = resultByDevice.concat(rerunResult3rd);
             if (rerunTimeoutTestLinks3rd.length > 0) {
               console.log(
@@ -291,6 +342,7 @@ async function run() {
       currentVersion,
       lastVersion,
       csvResultFileArray,
+      crashTests,
       notRunTests,
     );
     if (mailStatus) {
