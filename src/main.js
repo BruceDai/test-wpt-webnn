@@ -205,6 +205,7 @@ async function getTestResult(link, backendOrEP, timeoutTestLinks, lastRerun) {
       console.log(results);
     }
 
+    sleep.sleep(3);
     await gpuPage.close();
     await page.close();
   } catch (e) {
