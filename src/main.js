@@ -50,11 +50,6 @@ async function getConformanceTestLinks() {
   await browser.close();
 
   return links.filter((link) => !link.endsWith("headers"));
-  // return [
-  //   "https://wpt.live/webnn/conformance_tests/abs.https.any.js",
-  //   "https://wpt.live/webnn/conformance_tests/softsign.https.any.js",
-  //   "https://wpt.live/webnn/conformance_tests/softmax.https.any.js",
-  // ];
 }
 
 function getTestsuiteName(link) {
@@ -161,12 +156,18 @@ async function getTestResult(link, backendOrEP, timeoutTestLinks, lastRerun) {
         infoView.querySelectorAll("#content > div:last-child > ul > li"),
       ).map((el) => el.innerText);
     });
-    const webnnErrorMessages = gpuLogMessages.filter((message) =>
+    const webnnErrorMessagesStartIndex = gpuLogMessages.findIndex((message) =>
+      message.includes("[WebNN]"),
+    );
+    const webnnErrorMessages =
+      webnnErrorMessagesStartIndex != -1
+        ? gpuLogMessages.slice(webnnErrorMessagesStartIndex)
+        : [];
+    const crashMessages = webnnErrorMessages.filter((message) =>
       message.includes("GpuProcessHost: The GPU process crashed!"),
     );
-    // .map((message) => message.split("[WebNN]", 2)[1]);
-    if (webnnErrorMessages.length > 0) {
-      // result.error = webnnErrorMessages;
+
+    if (crashMessages.length > 0) {
       results.push([
         testsuiteName,
         testsuiteName,
