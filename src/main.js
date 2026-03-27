@@ -6,7 +6,7 @@ const puppeteer = require("puppeteer-core");
 const sleep = require("sleep");
 const { execSync, spawnSync } = require("child_process");
 const { stringify } = require("csv-stringify");
-const { getConfig, getTimestamp } = require("./utils.js");
+const { getConfig, getTimestamp, getTestsuiteName } = require("./utils.js");
 const { sendMail } = require("./report.js");
 
 const msTimeout = 300000; // 5 minutes
@@ -52,20 +52,6 @@ async function getConformanceTestLinks() {
   return links.filter((link) => !link.endsWith("headers"));
 }
 
-function getTestsuiteName(link) {
-  const startIndex = "https://wpt.live/webnn/conformance_tests/".length;
-  const tailLength = ".https.any.js".length; // 13
-  const rawName = link.slice(startIndex, link.length - tailLength);
-  const partArray = rawName.split("_");
-  return (
-    partArray[0] +
-    partArray
-      .slice(1)
-      .map((s) => s[0].toUpperCase() + s.slice(1))
-      .join("")
-  );
-}
-
 function killBrowser() {
   const binaryName =
     config.targetBrowser === "Chrome Canary" ? "chrome.exe" : "msedge.exe";
@@ -73,17 +59,10 @@ function killBrowser() {
 }
 
 function getLaunchArgs(backendOrEP) {
-  let launchArgs;
-
   if (backendOrEP === undefined) {
-    launchArgs = [];
-  } else {
-    launchArgs = JSON.parse(
-      JSON.stringify(config.browserLaunchArgs[backendOrEP]),
-    );
+    return [];
   }
-
-  return launchArgs;
+  return JSON.parse(JSON.stringify(config.browserLaunchArgs[backendOrEP]));
 }
 
 async function setBrowser(backendOrEP) {
@@ -273,6 +252,7 @@ async function run() {
     for (const backendOrEP of config.targetBackendOrEP) {
       console.log(`>>> Test by ${backendOrEP}`);
 
+      const maxRetries = 3;
       let [resultByDevice, timeoutTestLinks, crashTestLinks] =
         await runByDevice(testLinks, backendOrEP);
 
@@ -282,64 +262,48 @@ async function run() {
         );
       }
 
-      if (timeoutTestLinks.length > 0) {
-        // First run timeout tests
-        const [rerunResult, rerunTimeoutTestLinks, crashTestLinks1st] =
-          await runByDevice(timeoutTestLinks, backendOrEP);
-        if (crashTestLinks1st.length > 0) {
+      for (
+        let retry = 0;
+        retry < maxRetries && timeoutTestLinks.length > 0;
+        retry++
+      ) {
+        const lastRerun = retry === maxRetries - 1;
+        console.log(
+          `>>> Retry ${retry + 1}/${maxRetries} for timeout tests (${backendOrEP})`,
+        );
+        const [rerunResult, rerunTimeoutTestLinks, rerunCrashTestLinks] =
+          await runByDevice(timeoutTestLinks, backendOrEP, lastRerun);
+        if (rerunCrashTestLinks.length > 0) {
           crashTests[backendOrEP] = (crashTests[backendOrEP] || []).concat(
-            crashTestLinks1st,
+            rerunCrashTestLinks,
           );
         }
         resultByDevice = resultByDevice.concat(rerunResult);
-        if (rerunTimeoutTestLinks.length > 0) {
-          // Second run timeout tests
-          const [rerunResult2nd, rerunTimeoutTestLinks2nd, crashTestLinks2nd] =
-            await runByDevice(rerunTimeoutTestLinks, backendOrEP);
-          if (crashTestLinks2nd.length > 0) {
-            crashTests[backendOrEP] = (crashTests[backendOrEP] || []).concat(
-              crashTestLinks2nd,
-            );
-          }
-          resultByDevice = resultByDevice.concat(rerunResult2nd);
-          if (rerunTimeoutTestLinks2nd.length > 0) {
-            // Third run timeout tests
-            const [
-              rerunResult3rd,
-              rerunTimeoutTestLinks3rd,
-              crashTestLinks3rd,
-            ] = await runByDevice(rerunTimeoutTestLinks2nd, backendOrEP, true);
-            if (crashTestLinks3rd.length > 0) {
-              crashTests[backendOrEP] = (crashTests[backendOrEP] || []).concat(
-                crashTestLinks3rd,
-              );
-            }
-            resultByDevice = resultByDevice.concat(rerunResult3rd);
-            if (rerunTimeoutTestLinks3rd.length > 0) {
-              console.log(
-                `>>> Please check these timeout tests for testing ${backendOrEP}: ${rerunTimeoutTestLinks3rd}`,
-              );
-              notRunTests[backendOrEP] = rerunTimeoutTestLinks3rd;
-            }
-          }
-        }
+        timeoutTestLinks = rerunTimeoutTestLinks;
       }
 
-      stringify(
-        resultByDevice,
-        { header: true, columns: resultColumns },
-        (_, output) => {
-          const csvFile = path.join(
-            resultFolder,
-            `conformance_tests_result-${backendOrEP}.csv`,
-          );
-          csvResultFileArray.push(csvFile);
-          fs.writeFile(csvFile, output, () => {
-            console.log(
-              `>>> Save WebNN WPT conformance tests results into ${csvFile}`,
-            );
-          });
-        },
+      if (timeoutTestLinks.length > 0) {
+        console.log(
+          `>>> Please check these timeout tests for testing ${backendOrEP}: ${timeoutTestLinks}`,
+        );
+        notRunTests[backendOrEP] = timeoutTestLinks;
+      }
+
+      const csvFile = path.join(
+        resultFolder,
+        `conformance_tests_result-${backendOrEP}.csv`,
+      );
+      csvResultFileArray.push(csvFile);
+      const csvOutput = await new Promise((resolve, reject) => {
+        stringify(
+          resultByDevice,
+          { header: true, columns: resultColumns },
+          (err, output) => (err ? reject(err) : resolve(output)),
+        );
+      });
+      fs.writeFileSync(csvFile, csvOutput);
+      console.log(
+        `>>> Save WebNN WPT conformance tests results into ${csvFile}`,
       );
     }
 

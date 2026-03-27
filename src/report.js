@@ -5,7 +5,7 @@ const { execSync } = require("child_process");
 const fs = require("fs-extra");
 const nodemailer = require("nodemailer");
 const si = require("systeminformation");
-const { getConfig, getTimestamp } = require("./utils.js");
+const { getConfig, getTimestamp, getTestsuiteName } = require("./utils.js");
 
 const config = getConfig();
 
@@ -208,20 +208,6 @@ async function getSummaryResult(currentVersion, lastVersion, csvFileArray) {
   );
 }
 
-function getTestsuiteName(link) {
-  const startIndex = "https://wpt.live/webnn/conformance_tests/".length; // 41
-  const tailLength = ".https.any.js".length; // 13
-  const rawName = link.slice(startIndex, link.length - tailLength);
-  const partArray = rawName.split("_");
-  return (
-    partArray[0] +
-    partArray
-      .slice(1)
-      .map((s) => s[0].toUpperCase() + s.slice(1))
-      .join("")
-  );
-}
-
 function transformNotRunTests(test) {
   const result = [];
   for (const [key, urls] of Object.entries(test)) {
@@ -269,11 +255,32 @@ async function formatResultsAsHTMLTable(
     });
   }
 
+  const thStyle = `border: 1px solid black; padding: 0 4px 0 4px; background-color:rgb(4,116,196); text-align: center; vertical-align: middle; color:white`;
+  const thFixedStyle = `${thStyle}; min-width: 50px; width: 50px; max-width: 50px`;
+  const tdStyle = `border: 1px solid black;`;
+
+  function th(label, fixed = false) {
+    return `<th style="${fixed ? thFixedStyle : thStyle}">${label}</th>`;
+  }
+
+  function td(value) {
+    return `<td style="${tdStyle}">${value}</td>`;
+  }
+
+  function buildTable(width, headers, rows) {
+    if (rows.length === 0) return null;
+    const headerRow = headers
+      .map(([label, fixed]) => th(label, fixed))
+      .join("");
+    return `
+    <table style="border-collapse: collapse; width: ${width}; table-layout: fixed;">
+      <thead><tr>${headerRow}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
   const environmentInfoRows = formattedEnvironmentInfo
-    .map(
-      ({ category, detail }) =>
-        `<tr><td style="border: 1px solid black;">${category}</td><td style="border: 1px solid black;">${detail}</td></tr>`,
-    )
+    .map(({ category, detail }) => `<tr>${td(category)}${td(detail)}</tr>`)
     .join("");
 
   let summary = {
@@ -301,316 +308,94 @@ async function formatResultsAsHTMLTable(
   const passRateRows = summary.passRates
     .map(
       (passRate) =>
-        `<tr><td style="border: 1px solid black;">${passRate.backend}</td><td style="border: 1px solid black;">${((passRate.passNumber / passRate.totalNumber) * 100).toFixed(2)}% (${passRate.passNumber} / ${passRate.totalNumber})</td></tr>`,
+        `<tr>${td(passRate.backend)}${td(`${((passRate.passNumber / passRate.totalNumber) * 100).toFixed(2)}% (${passRate.passNumber} / ${passRate.totalNumber})`)}</tr>`,
     )
     .join("");
   const newPassTestsRows = summary.newPassTests
     .map(
       (test) =>
-        `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.testName}</td></tr>`,
+        `<tr>${td(test.backend)}${td(test.suiteName)}${td(test.testName)}</tr>`,
     )
     .join("");
   const regressionTestsRows = summary.regressionTests
     .map(
       (test) =>
-        `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.testName}</td><td style="border: 1px solid black;">${test.message}</td></tr>`,
+        `<tr>${td(test.backend)}${td(test.suiteName)}${td(test.testName)}${td(test.message)}</tr>`,
     )
     .join("");
 
-  const transformedCrashTests = transformNotRunTests(crashTests);
-  let crashTestsArray = [];
-  transformedCrashTests.forEach((test) => {
-    crashTestsArray.push(
-      `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.link}</td></tr>`,
-    );
-  });
+  const crashTestsRows = transformNotRunTests(crashTests)
+    .map(
+      (test) =>
+        `<tr>${td(test.backend)}${td(test.suiteName)}${td(test.link)}</tr>`,
+    )
+    .join("");
 
-  const crashTestsRows = crashTestsArray.join("");
+  const notRunTestsRows = transformNotRunTests(notRunTests)
+    .map(
+      (test) =>
+        `<tr>${td(test.backend)}${td(test.suiteName)}${td(test.link)}</tr>`,
+    )
+    .join("");
 
-  const transformedNotRunTests = transformNotRunTests(notRunTests);
-  let notRunTestsArray = [];
-  transformedNotRunTests.forEach((test) => {
-    notRunTestsArray.push(
-      `<tr><td style="border: 1px solid black;">${test.backend}</td><td style="border: 1px solid black;">${test.suiteName}</td><td style="border: 1px solid black;">${test.link}</td></tr>`,
-    );
-  });
+  resultObj.html.environmentInfoTable = buildTable(
+    "100%",
+    [
+      ["Category", false],
+      ["Details", false],
+    ],
+    environmentInfoRows,
+  );
 
-  const notRunTestsRows = notRunTestsArray.join("");
+  resultObj.html.passRateTable = buildTable(
+    "40%",
+    [
+      ["Backend", true],
+      ["Pass Rate", false],
+    ],
+    passRateRows,
+  );
 
-  resultObj.html.environmentInfoTable = `
-    <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
-      <thead>
-        <tr>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Category
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Details
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        ${environmentInfoRows}
-      </tbody>
-    </table>
-  `;
+  resultObj.html.newPassTestsTable = buildTable(
+    "80%",
+    [
+      ["Backend", true],
+      ["Test Suite", false],
+      ["Test Case", false],
+    ],
+    newPassTestsRows,
+  );
 
-  resultObj.html.passRateTable = `
-    <table style="border-collapse: collapse; width: 40%; table-layout: fixed;">
-      <thead>
-        <tr>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Backend
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Pass Rate
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        ${passRateRows}
-      </tbody>
-    </table>
-  `;
+  resultObj.html.regressionTestsTable = buildTable(
+    "100%",
+    [
+      ["Backend", true],
+      ["Test Suite", false],
+      ["Test Case", false],
+      ["Message", false],
+    ],
+    regressionTestsRows,
+  );
 
-  resultObj.html.newPassTestsTable =
-    summary.newPassTests.length > 0
-      ? `
-    <table style="border-collapse: collapse; width: 80%; table-layout: fixed;">
-      <thead>
-        <tr>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Backend
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Test Suite
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Test Case
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        ${newPassTestsRows}
-      </tbody>
-    </table>
-  `
-      : null;
+  resultObj.html.crashTestsTable = buildTable(
+    "100%",
+    [
+      ["Backend", true],
+      ["Test Suite", true],
+      ["Test URL", false],
+    ],
+    crashTestsRows,
+  );
 
-  resultObj.html.regressionTestsTable =
-    summary.regressionTests.length > 0
-      ? `
-    <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
-      <thead>
-        <tr>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Backend
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Test Suite
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Test Case
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Message
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        ${regressionTestsRows}
-      </tbody>
-    </table>
-  `
-      : null;
-
-  resultObj.html.crashTestsTable =
-    crashTestsArray.length > 0
-      ? `
-    <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
-      <thead>
-        <tr>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Backend
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Test Suite
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Test URL
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        ${crashTestsRows}
-      </tbody>
-    </table>
-  `
-      : null;
-
-  resultObj.html.notRunTestsTable =
-    notRunTestsArray.length > 0
-      ? `
-    <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
-      <thead>
-        <tr>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Backend
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196);
-            text-align: center; 
-            vertical-align: middle; 
-            color:white;
-            min-width: 50px;
-            width: 50px;
-            max-width: 50px
-          ">
-            Test Suite
-          </th>
-          <th style="
-            border: 1px solid black; 
-            padding: 0 4px 0 4px;
-            background-color:rgb(4,116,196); 
-            text-align: center; 
-            vertical-align: middle; 
-            color:white
-          ">
-            Test URL
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        ${notRunTestsRows}
-      </tbody>
-    </table>
-  `
-      : null;
+  resultObj.html.notRunTestsTable = buildTable(
+    "100%",
+    [
+      ["Backend", true],
+      ["Test Suite", true],
+      ["Test URL", false],
+    ],
+    notRunTestsRows,
+  );
 
   return resultObj;
 }
@@ -650,7 +435,7 @@ async function sendMail(
         return false;
       }
 
-      csvFileArray.map((csvFile) => {
+      csvFileArray.forEach((csvFile) => {
         mailOptions.attachments.push({
           filename: path.basename(csvFile),
           path: csvFile,
