@@ -277,7 +277,9 @@ async function run() {
         await runByDevice(testLinks, backendOrEP);
 
       if (crashTestLinks.length > 0) {
-        crashTests[backendOrEP] = crashTestLinks;
+        crashTests[backendOrEP] = (crashTests[backendOrEP] || []).concat(
+          crashTestLinks,
+        );
       }
 
       if (timeoutTestLinks.length > 0) {
@@ -285,7 +287,9 @@ async function run() {
         const [rerunResult, rerunTimeoutTestLinks, crashTestLinks1st] =
           await runByDevice(timeoutTestLinks, backendOrEP);
         if (crashTestLinks1st.length > 0) {
-          crashTests[backendOrEP] = crashTestLinks1st;
+          crashTests[backendOrEP] = (crashTests[backendOrEP] || []).concat(
+            crashTestLinks1st,
+          );
         }
         resultByDevice = resultByDevice.concat(rerunResult);
         if (rerunTimeoutTestLinks.length > 0) {
@@ -293,7 +297,9 @@ async function run() {
           const [rerunResult2nd, rerunTimeoutTestLinks2nd, crashTestLinks2nd] =
             await runByDevice(rerunTimeoutTestLinks, backendOrEP);
           if (crashTestLinks2nd.length > 0) {
-            crashTests[backendOrEP] = crashTestLinks2nd;
+            crashTests[backendOrEP] = (crashTests[backendOrEP] || []).concat(
+              crashTestLinks2nd,
+            );
           }
           resultByDevice = resultByDevice.concat(rerunResult2nd);
           if (rerunTimeoutTestLinks2nd.length > 0) {
@@ -304,7 +310,9 @@ async function run() {
               crashTestLinks3rd,
             ] = await runByDevice(rerunTimeoutTestLinks2nd, backendOrEP, true);
             if (crashTestLinks3rd.length > 0) {
-              crashTests[backendOrEP] = crashTestLinks3rd;
+              crashTests[backendOrEP] = (crashTests[backendOrEP] || []).concat(
+                crashTestLinks3rd,
+              );
             }
             resultByDevice = resultByDevice.concat(rerunResult3rd);
             if (rerunTimeoutTestLinks3rd.length > 0) {
