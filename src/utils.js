@@ -59,4 +59,18 @@ function getConfig() {
   return config;
 }
 
-module.exports = { getConfig, getTimestamp };
+function getTestsuiteName(link) {
+  const startIndex = "https://wpt.live/webnn/conformance_tests/".length;
+  const tailLength = ".https.any.js".length;
+  const rawName = link.slice(startIndex, link.length - tailLength);
+  const partArray = rawName.split("_");
+  return (
+    partArray[0] +
+    partArray
+      .slice(1)
+      .map((s) => s[0].toUpperCase() + s.slice(1))
+      .join("")
+  );
+}
+
+module.exports = { getConfig, getTimestamp, getTestsuiteName };
