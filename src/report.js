@@ -408,7 +408,7 @@ async function sendMail(
   notRunTests = {},
 ) {
   console.log(">>> Sending email...");
-  const subject = `${getTimestamp()} - [ORT][OV EPs]Nightly WPT WebNN Conformance Test Report by ${os.hostname()}`;
+  const subject = `${getTimestamp()} - Nightly WPT WebNN Conformance Test Report by ${os.hostname()}`;
   let transporter = nodemailer.createTransport(
     config.emailService.serverConfig,
   );
