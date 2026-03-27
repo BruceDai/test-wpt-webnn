@@ -30,24 +30,23 @@
     "browserLaunchArgs": {
         // LiteRT backend
         "LiteRT XNNPACK CPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork"
+            "--enable-features=WebMachineLearningNeuralNetwork",
+            "--webnn-ort-library-path-for-testing=fakepath"
         ],
         "LiteRT MLDrift GPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork"
-        ],
-    
-        // DirectML backend -- it will be depreciated
-        "DML GPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork,WebNNDirectML"
+            "--enable-features=WebMachineLearningNeuralNetwork",
+            "--webnn-ort-library-path-for-testing=fakepath"
         ],
     
         // ORT CPU EP
         "ORT Default CPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            "--webnn-ort-ignore-ihv-eps"
         ],
         // ORT GPU (DirectML) EP
         "ORT Default GPU": [
-            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
+            "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime",
+            "--webnn-ort-ignore-ihv-eps"
         ],
         "ORT OV CPU": [
             "--enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime"
